@@ -4,6 +4,6 @@ If you run a reasonably recent Emacs with `HOME`-environment variable set to thi
 
 It:
 * randomly overrides probably really useful Emacs keybindings with generally less useful ones
-* lets you do some lambda stuff hopefully
+* lets you do some lambda stuff hopefully (it should open a buffer with like mild instructions in it when starting)
 * a capybara
   * or: a pretty neat error, if your Emacs doesn't png-support
