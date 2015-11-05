@@ -1,0 +1,2 @@
+In fact, a data structure can be faithfully represented by -- is isomorphic to -- its right fold. For example, the entire list processing library, from head and tail to drop and take and even zipWith can be written entirely in terms of foldr.
+http://okmij.org/ftp/Haskell/AlgorithmsH1.html#foldl

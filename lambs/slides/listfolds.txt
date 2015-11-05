@@ -1,0 +1,15 @@
+sum:
+   fold + 0 (cons 1 (cons 2 (cons 3 nil)))
+=>          (+    1 (+    2 (+    3 0)))
+...
+=>          6
+
+appendy:
+
+a = (cons 1 (cons 2 nil))
+b = (cons 3 (cons 4 nil))
+
+   fold cons b a
+=> fold cons b (cons 1 (cons 2 nil))
+=>             (cons 1 (cons 2 b))
+=>             (cons 1 (cons 2 (cons 3 (cons 4 nil))))

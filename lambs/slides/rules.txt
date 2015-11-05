@@ -1,0 +1,11 @@
+Syntax:
+Exp u ::= x         variable
+          λx.u      abstraction
+          u1 u2     application
+ 
+Computation rule:
+(λx.u1) u2
+[u2/x]u1
+
+e.g.
+(λa.λb.λc.a c c) foo bar quux

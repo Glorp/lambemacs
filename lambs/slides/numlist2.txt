@@ -1,0 +1,14 @@
+so numbers are basically lists, but without junk in them:
+
+             junk
+       _______|_______
+      |       |       |
+      v       v       v
+(cons 1 (cons 2 (cons 3 nil)))
+
+
+(s      (s      (s      0))) 
+      ʌ       ʌ       ʌ
+      |_______|_______|
+              |
+           no junk
