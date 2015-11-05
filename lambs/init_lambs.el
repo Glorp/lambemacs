@@ -21,7 +21,7 @@
 
 (defun slide (x &optional p)
   (let ((line (make-string slidel ?-))
-        (fname (format "%s/lambs/slides/%s.txt" (getenv "HOME") x)))
+        (fname (format "%slambs/slides/%s.txt" lambda-homedir x)))
     (if (file-exists-p fname)
       (progn
         (insert "\n")
@@ -30,7 +30,7 @@
         (insert (get-string-from-file fname))
         (insert "\n")
         (if p (progn
-                (insert-image (create-image (format "%s/lambs/slides/%s.png" (getenv "HOME") p)))
+                (insert-image (create-image (format "%slambs/slides/%s.png" lambda-homedir p)))
                 (insert "\n")))
         (insert line)
         (insert "\n"))
@@ -38,7 +38,7 @@
 
 (defun pic (x)
   (insert "\n")
-  (insert-image (create-image (format "%s/lambs/slides/%s.png" (getenv "HOME") x)))
+  (insert-image (create-image (format "%slambs/slides/%s.png" lambda-homedir x)))
   (insert "\n"))
 
 (let ((lambd-rpls '(("\u225C" ":=")

@@ -1,7 +1,8 @@
 ;;; -*- lexical-binding: t -*-
 (require 'cl-lib)
 (require 'cl)
-(load (format "%s/lambs/init_lambs.el" (getenv "HOME")))
+(setq lambda-homedir (file-name-as-directory (getenv "HOME")))
+(load (format "%slambs/init_lambs.el" lambda-homedir))
 
 (set-language-environment "UTF-8")
 (setq-default indent-tabs-mode nil)
@@ -58,7 +59,7 @@
 
 (add-hook 'org-mode-hook (lambda () (org-indent-mode t)) t)
 
-(cd (format "%s/lambs" (getenv "HOME")))
+(cd (format "%slambs" lambda-homedir))
 (tool-bar-mode -1)
 
 (global-linum-mode 1)
@@ -69,5 +70,5 @@
 (switch-to-buffer (get-buffer-create "lambda"))
 (global-linum-mode 1)
 
-(insert (get-string-from-file (format "%s/lambs/lambda-init.txt" (getenv "HOME"))))
+(insert (get-string-from-file (format "%slambs/lambda-init.txt" lambda-homedir)))
 (goto-char 1)
