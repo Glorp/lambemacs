@@ -21,9 +21,20 @@ fun oor opt f = case opt of
                     NONE => f ()
                   | x    => x
 
+datatype num = Z
+             | S of num
+
+
+
+fun numToString n = let fun numToInt Z     = 0
+                          | numToInt (S n) = 1 + (numToInt n)
+                    in Int.toString (numToInt n)
+                    end
+
 datatype term = Lam of string * term
               | App of term * term
               | Var of string
+              | Num of num
  
 datatype def = Define of string * term
  
@@ -38,12 +49,15 @@ datatype exec = Reduction of (term * term)
               | Normal of term
 
 fun pstring s = "(" ^ s ^")"
-                                     
+
 fun termstr (Lam (p, b))          = "#l" ^ p ^ "." ^ termstr b
   | termstr (App (Lam (p, b), a)) = pstring (termstr (Lam (p, b))) ^ " " ^ argstring a
   | termstr (App (f, a))          = termstr f ^ " " ^ argstring a
   | termstr (Var s)               = s
+  | termstr (Num n)               = numToString n
+
 and argstring (Var s) = s
+  | argstring (Num n) = numToString n
   | argstring t       = pstring (termstr t)
 
 val lam = curry Lam
@@ -58,21 +72,36 @@ fun findTerm pred t =
               | NONE   => (case t of
                                Lam (p, b) => find b (lam p :: res)
                              | App (f, a) => findBin app f a res
-                             | Var _      => NONE)
+                             | Var _      => NONE
+                             | Num _      => NONE)
     in find t []
     end
  
 fun fterm t tz = foldl (uncurry apply) t tz
- 
-fun reducible (App (Lam (p, b), a)) = SOME ((p, b, a), fn (p, b, a) => (App (Lam (p, b), a)))
-  | reducible _                     = NONE
- 
+
+
+datatype red = Beta of (string * term * term) * ((string * term * term) -> term)
+             | Prim of term
+
+fun reducible (App (Lam (p, b), a))            = SOME (Beta ((p, b, a), fn (p, b, a) => (App (Lam (p, b), a))))
+  | reducible (App (Var "succ", (Num n)))      = SOME (Prim (Num (S n)))
+  | reducible (App (Var "pred", (Num (S n))))  = SOME (Prim (Num n))
+  | reducible (App (Var "zero?", (Num Z)))     = let val tru = (Lam ("a", (Lam ("b", (Var "a")))))
+                                                 in SOME (Prim tru)
+                                                 end
+  | reducible (App (Var "zero?", (Num (S n)))) = let val fal = (Lam ("a", (Lam ("b", (Var "b")))))
+                                                 in SOME (Prim fal)
+                                                 end
+  | reducible _                                = NONE
+
+
  
 fun subst t s (App (f, a)) = App (subst t s f, subst t s a)
   | subst t s (Lam (p, b)) = if p = s then Lam (p, b)
                              else Lam (p, subst t s b)
   | subst t s (Var v)      = if v = s then t
                              else Var v
+  | subst _ _ (Num n)      = Num n
  
 val renameDefs =
     let fun renameDef ((Define (ds, dt)), trm) = subst dt ds trm
@@ -88,10 +117,12 @@ fun freeIds (Var s) env      = if SSet.member (env, s) then SSet.empty
                                   else SSet.singleton s
   | freeIds (App (f, a)) env = SSet.union (freeIds f env, freeIds a env)
   | freeIds (Lam (p, b)) env = freeIds b (SSet.add (env, p))
+  | freeIds (Num _) env      = env
  
 fun allIds (Var s)      = SSet.singleton s
   | allIds (App (f, a)) = SSet.union (allIds f, allIds a)
   | allIds (Lam (p, b)) = SSet.add (allIds b, p)
+  | allIds (Num _)      = SSet.empty
  
 fun uniqueId t s =
     let val ids = allIds t
@@ -119,6 +150,7 @@ fun conflict param body arg =
                  | Var s      => if s = param
                                  then poss
                                  else NONE
+                 | Num n      => NONE                
             end
     in if SSet.isEmpty ids then NONE
        else conf body NONE []
@@ -133,8 +165,9 @@ fun reduceRename t =
             NONE                     => Reduction (t, fterm (subst ra rp rb) rtz)
           | SOME (cp, cb, cfun, ctz) => rename cp cb cfun (List.concat [ctz, [fn b => rfun (rp, b, ra)], rtz])
     in case findTerm reducible t of
-           SOME red => reduceRename0 red
-         | NONE     => Normal t
+           SOME (Beta b, rtz)    => reduceRename0 (b, rtz)
+         | SOME (Prim newt, rtz) => Reduction (t, fterm newt rtz)
+         | NONE                  => Normal t
     end
 
 datatype ctxi = Type of string | Annot of string * term
@@ -180,7 +213,14 @@ fun readWord str =
        else SOME (String.substring (s, p, pos - p), (s, pos, m))
     end
 
-fun readVar str = omap (readWord str) (fn (s, rest) => (Var s, rest))
+fun readVarOrNum str =
+    let fun strAll f s = List.all f (explode s)
+        fun intToNum i = if i < 1 then Z else S (intToNum (i - 1))
+        fun foo (s, rest) = if (strAll Char.isDigit s)
+                            then (Num ((intToNum o valOf o Int.fromString) s), rest)
+                            else (Var s, rest)
+    in omap (readWord str) foo
+    end
 
 fun listToApp []                = NONE
   | listToApp [x]            = SOME x
@@ -212,7 +252,7 @@ and readList str =
     in if atEnd (s, p, m) then SOME []
     else if isLam (s, p, m) then (omap (readLam (s, p + 2, m)) (fn t => [t]))
     else if String.sub (s, p) = #"(" then obnd (readParen (s, p + 1, m)) readRest
-    else obnd (readVar (s, p, m)) readRest
+    else obnd (readVarOrNum (s, p, m)) readRest
     end
 and readLam str =
     let fun readT (p, str) = omap (readTerm str)
@@ -234,7 +274,6 @@ and readParen (s, p, m) =
                              (fn t => (t, (s, stop + 1, m))))
 
     end
-
 
 fun isDef str =
     let val w = obnd (readWord str)
