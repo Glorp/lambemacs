@@ -36,6 +36,7 @@ datatype term = Lam of string * term
               | Var of string
               | Num of num
               | Prim of primitive
+              | FedPrim of primitive * term
 and      primitive = Pr of string * (term -> term option)
 
 datatype def = Define of string * term
@@ -47,6 +48,7 @@ datatype stmt = RenameDefs of term
               | ShowDefs
  
 datatype exec = Reduction of (term * term)
+              | ReductionSkip of (term * term)
               | Rename of (string * term * string * term)
               | Normal of term
 
@@ -57,6 +59,7 @@ fun termstr (Lam (p, b))          = "#l" ^ p ^ "." ^ termstr b
   | termstr (App (f, a))          = termstr f ^ " " ^ argstring a
   | termstr (Var s)               = s
   | termstr (Prim (Pr (s, _)))    = s
+  | termstr (FedPrim (Pr (s, _), a)) = s ^ " " ^ argstring a
   | termstr (Num n)               = numToString n
 
 and argstring (Var s) = s
@@ -66,6 +69,7 @@ and argstring (Var s) = s
 
 val lam = curry Lam
 val app = curry App
+val fedprim = curry FedPrim
  
 fun findTerm pred t =
     let fun findBin ctor t1 t2 res = oor (find t1 (flip ctor t2 :: res))
@@ -78,7 +82,8 @@ fun findTerm pred t =
                              | App (f, a) => findBin app f a res
                              | Var _      => NONE
                              | Num _      => NONE
-                             | Prim _     => NONE)
+                             | Prim _     => NONE
+                             | FedPrim (p, a) => find a (fedprim p :: res))
     in find t []
     end
  
@@ -103,6 +108,9 @@ fun subst t s (App (f, a)) = App (subst t s f, subst t s a)
   | subst t s (Prim (Pr (v, f))) = if v = s
                                    then raise SubstPrim v
                                    else (Prim (Pr (v, f)))
+  | subst t s (FedPrim (Pr (v, f), a)) = if v = s
+                                        then raise SubstPrim v
+                                        else (FedPrim (Pr (v, f), subst t s a))
   | subst _ _ (Num n)      = Num n
  
 val renameDefs =
@@ -145,6 +153,8 @@ fun freeIds (Var s) env      = if SSet.member (env, s) then SSet.empty
                                   else SSet.singleton s
   | freeIds (Prim (Pr (s, _))) env = if SSet.member (env, s) then SSet.empty
                                      else SSet.singleton s
+  | freeIds (FedPrim (Pr (s, _), a)) env = if SSet.member (env, s) then (freeIds a env)
+                                           else SSet.add (freeIds a env, s)
   | freeIds (App (f, a)) env = SSet.union (freeIds f env, freeIds a env)
   | freeIds (Lam (p, b)) env = freeIds b (SSet.add (env, p))
   | freeIds (Num _) env      = env
@@ -154,6 +164,7 @@ fun allIds (Var s)      = SSet.singleton s
   | allIds (App (f, a)) = SSet.union (allIds f, allIds a)
   | allIds (Lam (p, b)) = SSet.add (allIds b, p)
   | allIds (Num _)      = SSet.empty
+  | allIds (FedPrim (Pr (s, _), a)) = SSet.add (allIds a, s)
  
 fun uniqueId t s =
     let val ids = allIds t
@@ -181,9 +192,8 @@ fun conflict param body arg =
                  | Var s      => if s = param
                                  then poss
                                  else NONE
-                 | Prim (Pr (s, _)) => if s = param
-                                       then poss
-                                       else NONE
+                 | Prim _ => NONE
+                 | FedPrim (p, a) => conf a poss (fedprim p :: res)
                  | Num n      => NONE
             end
     in if SSet.isEmpty ids then NONE
@@ -200,6 +210,7 @@ fun reduceRename t =
           | SOME (cp, cb, cfun, ctz) => rename cp cb cfun (List.concat [ctz, [fn b => rfun (rp, b, ra)], rtz])
     in case findTerm reducible t of
            SOME (Beta b, rtz)    => reduceRename0 (b, rtz)
+         | SOME (PrimRed (FedPrim x), rtz) => ReductionSkip (t, fterm (FedPrim x) rtz)
          | SOME (PrimRed newt, rtz) => Reduction (t, fterm newt rtz)
          | NONE                  => Normal t
     end
@@ -372,10 +383,12 @@ fun removeDef _ [] = []
 
 
 fun nextExec (Reduction (_, t))    = SOME t
+  | nextExec (ReductionSkip (_, t))    = SOME t
   | nextExec (Rename (_, _, _, t)) = SOME t
   | nextExec (Normal _)            = NONE
 
 fun execStr (Reduction (_, t))      = "\n" ^ termstr t
+  | execStr (ReductionSkip (_, t))      = "\n" ^ termstr t
   | execStr (Rename (s1, _, s2, t)) = "\n" ^ termstr t ^ " | [" ^ s2 ^ "/" ^ s1 ^ "]"
   | execStr (Normal t)              = "\n" ^ termstr t
 
@@ -388,7 +401,11 @@ fun runrepl defs _ =
       fun hTerm t c p = 
           if c = 0
           then defs
-          else let val res = reduceRename t
+          else let val res = let fun r t = case reduceRename t of
+                                                ReductionSkip (_, t) => r t
+                                              | x => x
+                             in r t
+                             end
                    val flush = if c mod 10 = 0 orelse c < 10 then TextIO.print "#e" else ()
                    in case nextExec res of
                           SOME t => (TextIO.print (execStr res);
