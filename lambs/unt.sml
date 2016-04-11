@@ -36,7 +36,7 @@ datatype term = Lam of string * term
               | Var of string
               | Num of num
               | Prim of primitive
-              | FedPrim of primitive * term
+              | FedPrim of term * (term -> term option)
 and      primitive = Pr of string * (term -> term option)
 
 datatype def = Define of string * term
@@ -59,17 +59,18 @@ fun termstr (Lam (p, b))          = "#l" ^ p ^ "." ^ termstr b
   | termstr (App (f, a))          = termstr f ^ " " ^ argstring a
   | termstr (Var s)               = s
   | termstr (Prim (Pr (s, _)))    = s
-  | termstr (FedPrim (Pr (s, _), a)) = s ^ " " ^ argstring a
+  | termstr (FedPrim (t, _))      = termstr t
   | termstr (Num n)               = numToString n
 
 and argstring (Var s) = s
   | argstring (Num n) = numToString n
   | argstring (Prim (Pr (s, _))) = s
+  | argstring (FedPrim (t, _)) = argstring t
   | argstring t       = pstring (termstr t)
 
 val lam = curry Lam
 val app = curry App
-val fedprim = curry FedPrim
+val fedprim = flip (curry FedPrim)
  
 fun findTerm pred t =
     let fun findBin ctor t1 t2 res = oor (find t1 (flip ctor t2 :: res))
@@ -83,7 +84,7 @@ fun findTerm pred t =
                              | Var _      => NONE
                              | Num _      => NONE
                              | Prim _     => NONE
-                             | FedPrim (p, a) => find a (fedprim p :: res))
+                             | FedPrim (t, f) => find t (fedprim f :: res))
     in find t []
     end
  
@@ -96,6 +97,7 @@ datatype red = Beta of (string * term * term) * ((string * term * term) -> term)
 fun reducible (App (Lam (p, b), a))
       = SOME (Beta ((p, b, a), fn (p, b, a) => (App (Lam (p, b), a))))
   | reducible (App (Prim (Pr (_, f)), x))      = omap (f x) PrimRed
+  | reducible (App (FedPrim (_, f), x))        = omap (f x) PrimRed
   | reducible _                                = NONE
 
 exception SubstPrim of string
@@ -108,15 +110,16 @@ fun subst t s (App (f, a)) = App (subst t s f, subst t s a)
   | subst t s (Prim (Pr (v, f))) = if v = s
                                    then raise SubstPrim v
                                    else (Prim (Pr (v, f)))
-  | subst t s (FedPrim (Pr (v, f), a)) = if v = s
-                                        then raise SubstPrim v
-                                        else (FedPrim (Pr (v, f), subst t s a))
+  | subst t s (FedPrim (x, f))   = FedPrim (subst t s x, f)
   | subst _ _ (Num n)      = Num n
  
 val renameDefs =
     let fun renameDef ((Define (ds, dt)), trm) = subst dt ds trm
     in foldr renameDef
     end
+
+fun plus a Z = a
+  | plus a (S n) = plus (S a) n
 
 fun substPrims t =
     let fun simple s = Pr (s, fn _ => NONE)
@@ -132,13 +135,18 @@ fun substPrims t =
         fun isZero (Num Z)   = SOME (Prim tru)
           | isZero (Num _)   = SOME (Prim fal)
           | isZero _         = NONE
+        fun plus1 n (Num x)  = SOME (Num (plus n x))
+          | plus1 _ _        = NONE
+        fun plus2 (Num x)    = SOME (FedPrim (App (Prim (simple "+"), Num x), plus1 x))
+          | plus2 _          = NONE
     val primitives =
             [tru,
              fal,
              Pr ("if", iff),
              Pr ("zero?", isZero),
              Pr ("succ", succ),
-             Pr ("pred", pred)]
+             Pr ("pred", pred),
+             Pr ("+", plus2)]
         fun substPrim (prim, trm) = case prim of
                                         Pr (ps, _) => subst (Prim prim) ps trm
     in foldr substPrim t primitives
@@ -153,8 +161,7 @@ fun freeIds (Var s) env      = if SSet.member (env, s) then SSet.empty
                                   else SSet.singleton s
   | freeIds (Prim (Pr (s, _))) env = if SSet.member (env, s) then SSet.empty
                                      else SSet.singleton s
-  | freeIds (FedPrim (Pr (s, _), a)) env = if SSet.member (env, s) then (freeIds a env)
-                                           else SSet.add (freeIds a env, s)
+  | freeIds (FedPrim (t, _)) env = freeIds t env
   | freeIds (App (f, a)) env = SSet.union (freeIds f env, freeIds a env)
   | freeIds (Lam (p, b)) env = freeIds b (SSet.add (env, p))
   | freeIds (Num _) env      = env
@@ -164,7 +171,7 @@ fun allIds (Var s)      = SSet.singleton s
   | allIds (App (f, a)) = SSet.union (allIds f, allIds a)
   | allIds (Lam (p, b)) = SSet.add (allIds b, p)
   | allIds (Num _)      = SSet.empty
-  | allIds (FedPrim (Pr (s, _), a)) = SSet.add (allIds a, s)
+  | allIds (FedPrim (t, _)) = allIds t
  
 fun uniqueId t s =
     let val ids = allIds t
@@ -193,7 +200,7 @@ fun conflict param body arg =
                                  then poss
                                  else NONE
                  | Prim _ => NONE
-                 | FedPrim (p, a) => conf a poss (fedprim p :: res)
+                 | FedPrim (t, f) => conf t poss (fedprim f :: res)
                  | Num n      => NONE
             end
     in if SSet.isEmpty ids then NONE
