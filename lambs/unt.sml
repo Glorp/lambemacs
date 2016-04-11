@@ -24,18 +24,20 @@ fun oor opt f = case opt of
 datatype num = Z
              | S of num
 
-
-
 fun numToString n = let fun numToInt Z     = 0
                           | numToInt (S n) = 1 + (numToInt n)
                     in Int.toString (numToInt n)
                     end
 
+
+
 datatype term = Lam of string * term
               | App of term * term
               | Var of string
               | Num of num
- 
+              | Prim of primitive
+and      primitive = Pr of string * (term -> term option)
+
 datatype def = Define of string * term
  
 datatype stmt = RenameDefs of term
@@ -54,10 +56,12 @@ fun termstr (Lam (p, b))          = "#l" ^ p ^ "." ^ termstr b
   | termstr (App (Lam (p, b), a)) = pstring (termstr (Lam (p, b))) ^ " " ^ argstring a
   | termstr (App (f, a))          = termstr f ^ " " ^ argstring a
   | termstr (Var s)               = s
+  | termstr (Prim (Pr (s, _)))    = s
   | termstr (Num n)               = numToString n
 
 and argstring (Var s) = s
   | argstring (Num n) = numToString n
+  | argstring (Prim (Pr (s, _))) = s
   | argstring t       = pstring (termstr t)
 
 val lam = curry Lam
@@ -73,7 +77,8 @@ fun findTerm pred t =
                                Lam (p, b) => find b (lam p :: res)
                              | App (f, a) => findBin app f a res
                              | Var _      => NONE
-                             | Num _      => NONE)
+                             | Num _      => NONE
+                             | Prim _     => NONE)
     in find t []
     end
  
@@ -81,31 +86,54 @@ fun fterm t tz = foldl (uncurry apply) t tz
 
 
 datatype red = Beta of (string * term * term) * ((string * term * term) -> term)
-             | Prim of term
+             | PrimRed of term
 
-fun reducible (App (Lam (p, b), a))            = SOME (Beta ((p, b, a), fn (p, b, a) => (App (Lam (p, b), a))))
-  | reducible (App (Var "succ", (Num n)))      = SOME (Prim (Num (S n)))
-  | reducible (App (Var "pred", (Num (S n))))  = SOME (Prim (Num n))
-  | reducible (App (Var "zero?", (Num Z)))     = let val tru = (Lam ("a", (Lam ("b", (Var "a")))))
-                                                 in SOME (Prim tru)
-                                                 end
-  | reducible (App (Var "zero?", (Num (S n)))) = let val fal = (Lam ("a", (Lam ("b", (Var "b")))))
-                                                 in SOME (Prim fal)
-                                                 end
+fun reducible (App (Lam (p, b), a))
+      = SOME (Beta ((p, b, a), fn (p, b, a) => (App (Lam (p, b), a))))
+  | reducible (App (Prim (Pr (_, f)), x))      = omap (f x) PrimRed
   | reducible _                                = NONE
 
-
- 
+exception SubstPrim of string
 fun subst t s (App (f, a)) = App (subst t s f, subst t s a)
   | subst t s (Lam (p, b)) = if p = s then Lam (p, b)
                              else Lam (p, subst t s b)
-  | subst t s (Var v)      = if v = s then t
+  | subst t s (Var v)      = if v = s
+                             then t
                              else Var v
+  | subst t s (Prim (Pr (v, f))) = if v = s
+                                   then raise SubstPrim v
+                                   else (Prim (Pr (v, f)))
   | subst _ _ (Num n)      = Num n
  
 val renameDefs =
     let fun renameDef ((Define (ds, dt)), trm) = subst dt ds trm
     in foldr renameDef
+    end
+
+fun substPrims t =
+    let fun simple s = Pr (s, fn _ => NONE)
+        val tru = simple "true"
+        val fal = simple "false"
+        fun iff (Prim (Pr ("true", _))) = SOME (Lam ("a", Lam ("b", Var "a")))
+          | iff (Prim (Pr ("false", _))) = SOME (Lam ("a", Lam ("b", Var "b")))
+          | iff _ = NONE
+        fun succ (Num n)     = SOME (Num (S n))
+          | succ _           = NONE
+        fun pred (Num (S n)) = SOME (Num n) 
+          | pred _           = NONE
+        fun isZero (Num Z)   = SOME (Prim tru)
+          | isZero (Num _)   = SOME (Prim fal)
+          | isZero _         = NONE
+    val primitives =
+            [tru,
+             fal,
+             Pr ("if", iff),
+             Pr ("zero?", isZero),
+             Pr ("succ", succ),
+             Pr ("pred", pred)]
+        fun substPrim (prim, trm) = case prim of
+                                        Pr (ps, _) => subst (Prim prim) ps trm
+    in foldr substPrim t primitives
     end
 
 structure SSet = ListSetFn (struct
@@ -115,11 +143,14 @@ structure SSet = ListSetFn (struct
  
 fun freeIds (Var s) env      = if SSet.member (env, s) then SSet.empty
                                   else SSet.singleton s
+  | freeIds (Prim (Pr (s, _))) env = if SSet.member (env, s) then SSet.empty
+                                     else SSet.singleton s
   | freeIds (App (f, a)) env = SSet.union (freeIds f env, freeIds a env)
   | freeIds (Lam (p, b)) env = freeIds b (SSet.add (env, p))
   | freeIds (Num _) env      = env
  
 fun allIds (Var s)      = SSet.singleton s
+  | allIds (Prim (Pr (s, _))) = SSet.singleton s
   | allIds (App (f, a)) = SSet.union (allIds f, allIds a)
   | allIds (Lam (p, b)) = SSet.add (allIds b, p)
   | allIds (Num _)      = SSet.empty
@@ -150,7 +181,10 @@ fun conflict param body arg =
                  | Var s      => if s = param
                                  then poss
                                  else NONE
-                 | Num n      => NONE                
+                 | Prim (Pr (s, _)) => if s = param
+                                       then poss
+                                       else NONE
+                 | Num n      => NONE
             end
     in if SSet.isEmpty ids then NONE
        else conf body NONE []
@@ -166,7 +200,7 @@ fun reduceRename t =
           | SOME (cp, cb, cfun, ctz) => rename cp cb cfun (List.concat [ctz, [fn b => rfun (rp, b, ra)], rtz])
     in case findTerm reducible t of
            SOME (Beta b, rtz)    => reduceRename0 (b, rtz)
-         | SOME (Prim newt, rtz) => Reduction (t, fterm newt rtz)
+         | SOME (PrimRed newt, rtz) => Reduction (t, fterm newt rtz)
          | NONE                  => Normal t
     end
 
@@ -275,6 +309,8 @@ and readParen (s, p, m) =
 
     end
 
+fun readTermWithPrims str = omap (readTerm str) substPrims
+
 fun isDef str =
     let val w = obnd (readWord str)
              (fn (name, rest) => readWord rest)
@@ -299,7 +335,7 @@ fun readDef str =
     in case (name, firstW) of
        (SOME (n, _), SOME true) => SOME (Undef n)
                            
-     | (SOME (n, rest), _)           => omap (readTerm rest)
+     | (SOME (n, rest), _)           => omap (readTermWithPrims rest)
                                (fn t => Def (Define (n, t)))
      | _                             => NONE
     end
@@ -312,15 +348,15 @@ fun readStmt s =
        then SOME ShowDefs
 
        else if String.isPrefix ren s
-       then omap (readTerm (s, size ren, size s)) RenameDefs
+       then omap (readTermWithPrims (s, size ren, size s)) RenameDefs
 
        else if String.isPrefix ev1000 s
-       then omap (readTerm (s, size ev1000, size s)) (fn t => Eval (t, 1000))
+       then omap (readTermWithPrims (s, size ev1000, size s)) (fn t => Eval (t, 1000))
 
        else if isDef str
        then readDef (s, 0, size s)
 
-       else omap (readTerm str) (fn t => Eval (t, 1))
+       else omap (readTermWithPrims str) (fn t => Eval (t, 1))
     end   
 
 fun addDef def [] = [def]
