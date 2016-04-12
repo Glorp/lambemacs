@@ -118,13 +118,27 @@ val renameDefs =
     in foldr renameDef
     end
 
-fun plus a Z = a
-  | plus a (S n) = plus (S a) n
+fun plus (a, Z) = a
+  | plus (a, (S n)) = plus (S a, n)
+
+fun minus (Z, _) = Z
+  | minus (a, Z) = a
+  | minus (S a, S b) = minus (a, b)
+
+fun simplePrim s = Pr (s, fn _ => NONE)
+
+fun binNumPrim s f =
+    let fun f1 a (Num b) = SOME (f (a, b))
+          | f1 _ _       = NONE
+        fun f2 (Num x)   = SOME (FedPrim (App (Prim (simplePrim s), Num x), f1 x))
+          | f2 _         = NONE
+    in Pr (s, f2)
+    end
+
 
 fun substPrims t =
-    let fun simple s = Pr (s, fn _ => NONE)
-        val tru = simple "true"
-        val fal = simple "false"
+    let val tru = simplePrim "true"
+        val fal = simplePrim "false"
         fun iff (Prim (Pr ("true", _))) = SOME (Lam ("a", Lam ("b", Var "a")))
           | iff (Prim (Pr ("false", _))) = SOME (Lam ("a", Lam ("b", Var "b")))
           | iff _ = NONE
@@ -135,10 +149,6 @@ fun substPrims t =
         fun isZero (Num Z)   = SOME (Prim tru)
           | isZero (Num _)   = SOME (Prim fal)
           | isZero _         = NONE
-        fun plus1 n (Num x)  = SOME (Num (plus n x))
-          | plus1 _ _        = NONE
-        fun plus2 (Num x)    = SOME (FedPrim (App (Prim (simple "+"), Num x), plus1 x))
-          | plus2 _          = NONE
     val primitives =
             [tru,
              fal,
@@ -146,7 +156,8 @@ fun substPrims t =
              Pr ("zero?", isZero),
              Pr ("succ", succ),
              Pr ("pred", pred),
-             Pr ("+", plus2)]
+             binNumPrim "+" (Num o plus),
+             binNumPrim "-" (Num o minus)]
         fun substPrim (prim, trm) = case prim of
                                         Pr (ps, _) => subst (Prim prim) ps trm
     in foldr substPrim t primitives
