@@ -135,12 +135,21 @@ fun binNumPrim s f =
     in Pr (s, f2)
     end
 
+fun ifTrue (a, b) = a
+fun ifFalse (a, b) = b
+
+fun binAnyFed t f =
+    let fun f1 a b = SOME (f (a, b))
+        fun f2 x   = SOME (FedPrim (App (t, x), f1 x))
+    in FedPrim (t, f2)
+    end
 
 fun substPrims t =
     let val tru = simplePrim "true"
         val fal = simplePrim "false"
-        fun iff (Prim (Pr ("true", _))) = SOME (Lam ("a", Lam ("b", Var "a")))
-          | iff (Prim (Pr ("false", _))) = SOME (Lam ("a", Lam ("b", Var "b")))
+        fun ifHalp s f = binAnyFed (App (Prim (simplePrim "if"), Prim (simplePrim s))) f
+        fun iff (Prim (Pr ("true", _))) = SOME (ifHalp "true" ifTrue)
+          | iff (Prim (Pr ("false", _))) = SOME (ifHalp "false" ifFalse)
           | iff _ = NONE
         fun succ (Num n)     = SOME (Num (S n))
           | succ _           = NONE
