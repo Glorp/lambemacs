@@ -121,6 +121,9 @@ val renameDefs =
 fun plus (a, Z) = a
   | plus (a, (S n)) = plus (S a, n)
 
+fun mult (a, Z) = Z
+  | mult (a, (S b)) = plus (a, mult(a, b))
+
 fun minus (Z, _) = Z
   | minus (a, Z) = a
   | minus (S a, S b) = minus (a, b)
@@ -166,7 +169,8 @@ fun substPrims t =
              Pr ("succ", succ),
              Pr ("pred", pred),
              binNumPrim "+" (Num o plus),
-             binNumPrim "-" (Num o minus)]
+             binNumPrim "-" (Num o minus),
+             binNumPrim "*" (Num o mult)]
         fun substPrim (prim, trm) = case prim of
                                         Pr (ps, _) => subst (Prim prim) ps trm
     in foldr substPrim t primitives
