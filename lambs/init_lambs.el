@@ -18,6 +18,7 @@
 (setq slidel 60)
 
 (setq reststring "")
+(setq lamb-sml nil)
 
 (defun slide (x &optional p)
   (let ((line (make-string slidel ?-))
@@ -57,7 +58,10 @@
              (cl-reduce (lambda (s c)
                           (replace-regexp-in-string (cadr c) (car c) s)) lambd-rpls :initial-value s))))
 
-        (defun lambd-print-string (str)
+        (defun lambd-print-string-sml (str)
+          (insert str))
+
+        (defun lambd-print-string-lamb (str)
           (let ((strs (split-string (concat reststring str) "#e")))
             (while (cdr strs)
               (if (equal (car strs) "#w")
@@ -66,9 +70,15 @@
               (setq strs (cdr strs)))
             (setq reststring (car strs))))
 
+        (defun lambd-print-string (str)
+          (if lamb-sml
+              (lambd-print-string-lamb str)
+              (lambd-print-string-sml str)))
+
         (defun exec-lamb (command)
           (let ((s (concat command (buffer-substring-no-properties (line-beginning-position) (line-end-position)))))
             (goto-char (line-end-position))
+            (if lamb-sml nil (insert "\n"))
             (process-send-string "lambdproc" (format "%s\n" (elam->smlam s)))))
 
         (defun exec-lamb-rename ()
@@ -87,7 +97,7 @@
           (interactive)
           (kill-process "lambdproc"))
 
-        (defun start-lamb ()
+        (defun start-stuff ()
 
           (rename-buffer "lambda")
           (setq lambdabuffer "lambda")
@@ -106,4 +116,13 @@
           (global-set-key (kbd "C-e") 'exec-lamb-default)
           (global-set-key (kbd "C-S-e") 'exec-lamb-1000)
           (insert "\n")
-          (process-send-string "lambdproc" "use \"unt.sml\"; repl.repl ();\n"))))
+          (process-send-string "lambdproc" "use \"unt.sml\";\n"))
+
+        (defun start-lamb ()
+          (setq lamb-sml 't)
+          (insert "\n")
+          (process-send-string "lambdproc" "repl.repl ();\n"))
+        (defun stop-lamb ()
+          (setq lamb-sml nil)
+          (insert "\n")
+          (process-send-string "lambdproc" "#end\n"))))

@@ -1,8 +1,15 @@
 C-x C-e: evaluate Emacs Lisp-expression (cursor on end of line first maybe)
 (slide "start" "capy")
 
-Emacs Lisp-evaluating (start-lamb) should start the lambda-thing:
+Emacs Lisp-evaluating (start-lamb) should start SML
+and then (start-lamb) should start the lambda-thing
+and (stop-lamb) should stop the lambda-thing
+
+(start-stuff)
 (start-lamb)
+(stop-lamb)
+
+
 
 C-d: ≜
 C-l: λ
@@ -23,26 +30,20 @@ Renaming variables to avoid capture counts as one step:
 like,
 λx.(λy.λx.y) x
 
-There's a buch of definitions in the cheat-slide:
-(slide "cheat")
-
+*~*~*~*~*~*~*~*~*
 
 (slide "rules")
 
 *~*~* stuff *~*~*
 
-(slide "pred")
-
-*~*~* stuff *~*~*
-
-(slide "numlist1")
-(slide "numlist2")
-
-*~*~* stuff *~*~*
-
-(slide "foldquote")
-(slide "listfolds")
-
 (slide "numfold")
+
+*~*~* stuff *~*~*
+
+(slide "plusses")
+
+*~*~* stuff *~*~*
+
+(slide "terror" "c")
 
 *~*~* stuff *~*~*

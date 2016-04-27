@@ -1,0 +1,30 @@
+SML:
+Error: operator is not a function [circularity]
+- fn x => x x;;
+stdIn:1.10-1.13 Error: operator is not a function [circularity]
+  operator: 'Z
+  in expression:
+    x x
+
+Haskell:
+Prelude> \x -> x x
+
+<interactive>:2:9:
+    Occurs check: cannot construct the infinite type: t1 = t1 -> t0
+    In the first argument of `x', namely `x'
+    In the expression: x x
+    In the expression: \ x -> x x
+
+F#:
+> fun x -> x x;;
+
+  fun x -> x x;;
+  -----------^
+
+stdin(1,12): error FS0001: Type mismatch. Expecting a
+    'a
+but given a
+    'a -> 'b
+The resulting type would be infinite when unifying ''a' and ''a -> 'b'
+
+Coq:
