@@ -1,0 +1,34 @@
+Syntax:
+Exp u ::= x                         variable
+          λx.u                      abstraction
+          u1 u2                     application
+          true                      boolean
+          false                     boolean
+          if                        stuff
+          [0-9]+                    number
+          succ                      stuff
+          pred                      stuff
+          zero?                     stuff
+          maybe other stuff         also stuff
+ 
+Computation rule:
+(λx.u1) u2
+[u2/x]u1
+
+if true a b
+a
+
+succ n
+n+1
+
+zero? 0
+true
+
+etc
+
+e.g.
+(λa.λb.λc.a c c) foo bar quux
+
+if false foo bar
+
+zero? (pred (pred 2))
