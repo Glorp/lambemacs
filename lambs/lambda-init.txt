@@ -49,3 +49,7 @@ like,
 (slide "terror" "c")
 
 *~*~* stuff *~*~*
+
+(slide "plusses")
+
+*~*~* stuff *~*~*
