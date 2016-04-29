@@ -147,7 +147,14 @@ fun binAnyFed t f =
     in FedPrim (t, f2)
     end
 
-val npmprims =
+fun addPackage (id : string, name, stuff) packages =
+    fn s => if s = id
+            then SOME (id, name, stuff)
+            else packages id
+
+fun noPackages _ = NONE
+
+val npm =
     let val tru = simplePrim "true"
         val fal = simplePrim "false"
         fun ifHalp s f = binAnyFed (App (Prim (simplePrim "if"), Prim (simplePrim s))) f
@@ -161,15 +168,31 @@ val npmprims =
         fun isZero (Num Z)   = SOME (Prim tru)
           | isZero (Num _)   = SOME (Prim fal)
           | isZero _         = NONE
-    in [tru,
-        fal,
-        Pr ("if", iff),
-        Pr ("zero?", isZero),
-        Pr ("succ", succ),
-        Pr ("pred", pred),
-        binNumPrim "+" (Num o plus),
-        binNumPrim "-" (Num o minus),
-        binNumPrim "*" (Num o mult)]
+    in ("npm",
+        "Number Package Module",
+        [tru,
+         fal,
+         Pr ("if", iff),
+         Pr ("zero?", isZero),
+         Pr ("succ", succ),
+         Pr ("pred", pred),
+         binNumPrim "+" (Num o plus),
+         binNumPrim "-" (Num o minus),
+         binNumPrim "*" (Num o mult)])
+    end
+
+val packages = addPackage npm noPackages
+
+fun installPackage id packages prims =
+    let fun addPrim (Pr (s : string, f), Pr (ss, ff) :: tl) =
+            if s = ss
+            then (Pr (s, f) :: tl)
+            else (Pr (ss, ff) :: addPrim (Pr (s, f), tl))
+          | addPrim (p, []) = [p]
+    in case packages id of
+           NONE => (TextIO.print ("\nNo package named " ^ id ^ ". soz.\n#e"); prims)
+         | SOME (_, name, stuff) => (TextIO.print ("\nInstalling " ^ name ^ "...\n#e");
+                                  foldl addPrim prims stuff)
     end
 
 fun substPrims prims t =
@@ -425,7 +448,7 @@ fun execStr (Reduction (_, t))      = "\n" ^ termstr t
 
 fun stmtstr _ (Def (Define (s, _))) = "\n" ^ s ^ " :)"
   | stmtstr _ (Undef s)             = "\n" ^ s ^ " :("
-  | stmtstr _ _                     = ""  
+  | stmtstr _ _                     = ""
 
 fun runrepl defs prims _ =
     let val inp = TextIO.inputLine TextIO.stdIn
@@ -468,11 +491,17 @@ fun runrepl defs prims _ =
     in case inp of
            NONE           => OS.Process.failure
          | SOME "#end\n"  => OS.Process.success
-         | SOME "install npm\n"  => (TextIO.print "\nInstalling Number Package Module...\n#e";
-                                      runrepl defs npmprims ())
-         | SOME s         => runrepl (handleString (hd (String.fields (fn c => c = #"|") s))) 
-                                     prims
-                                     ()
+         | SOME s         => if String.isPrefix "install " s
+                             then runrepl defs
+                                          (installPackage (String.substring (s,
+                                                                             8,
+                                                                             (String.size s) - 9))
+                                                          packages
+                                                          prims)
+                                          ()
+                             else runrepl (handleString (hd (String.fields (fn c => c = #"|") s))) 
+                                          prims
+                                          ()
     end
 
 fun repl x = (TextIO.print "Meep meep meep! :D\n#e"; runrepl [] [] x; ())
