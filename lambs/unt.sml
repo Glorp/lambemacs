@@ -147,7 +147,7 @@ fun binAnyFed t f =
     in FedPrim (t, f2)
     end
 
-fun substPrims t =
+val npmprims =
     let val tru = simplePrim "true"
         val fal = simplePrim "false"
         fun ifHalp s f = binAnyFed (App (Prim (simplePrim "if"), Prim (simplePrim s))) f
@@ -161,19 +161,21 @@ fun substPrims t =
         fun isZero (Num Z)   = SOME (Prim tru)
           | isZero (Num _)   = SOME (Prim fal)
           | isZero _         = NONE
-    val primitives =
-            [tru,
-             fal,
-             Pr ("if", iff),
-             Pr ("zero?", isZero),
-             Pr ("succ", succ),
-             Pr ("pred", pred),
-             binNumPrim "+" (Num o plus),
-             binNumPrim "-" (Num o minus),
-             binNumPrim "*" (Num o mult)]
-        fun substPrim (prim, trm) = case prim of
+    in [tru,
+        fal,
+        Pr ("if", iff),
+        Pr ("zero?", isZero),
+        Pr ("succ", succ),
+        Pr ("pred", pred),
+        binNumPrim "+" (Num o plus),
+        binNumPrim "-" (Num o minus),
+        binNumPrim "*" (Num o mult)]
+    end
+
+fun substPrims prims t =
+    let fun substPrim (prim, trm) = case prim of
                                         Pr (ps, _) => subst (Prim prim) ps trm
-    in foldr substPrim t primitives
+    in foldr substPrim t prims
     end
 
 structure SSet = ListSetFn (struct
@@ -351,7 +353,7 @@ and readParen (s, p, m) =
 
     end
 
-fun readTermWithPrims str = omap (readTerm str) substPrims
+fun readTermWithPrims str prims = omap (readTerm str) (substPrims prims)
 
 fun isDef str =
     let val w = obnd (readWord str)
@@ -369,7 +371,7 @@ fun isSadface str =
            andalso atEnd (s, p + 2, m))
     end
 
-fun readDef str = 
+fun readDef str prims = 
     let val name = obnd (readWord str)
             (fn (name, rest) => omap (readWord rest)
                          (fn (_, rest) => (name, rest)))
@@ -377,12 +379,12 @@ fun readDef str =
     in case (name, firstW) of
        (SOME (n, _), SOME true) => SOME (Undef n)
                            
-     | (SOME (n, rest), _)           => omap (readTermWithPrims rest)
-                               (fn t => Def (Define (n, t)))
+     | (SOME (n, rest), _)           => omap (readTermWithPrims rest prims)
+                                             (fn t => Def (Define (n, t)))
      | _                             => NONE
     end
 
-fun readStmt s =
+fun readStmt s prims =
     let val ren = "#rename "
         val ev1000 = "#eval1000 "
         val str = (s, 0, size s)
@@ -390,15 +392,15 @@ fun readStmt s =
        then SOME ShowDefs
 
        else if String.isPrefix ren s
-       then omap (readTermWithPrims (s, size ren, size s)) RenameDefs
+       then omap (readTermWithPrims (s, size ren, size s) prims) RenameDefs
 
        else if String.isPrefix ev1000 s
-       then omap (readTermWithPrims (s, size ev1000, size s)) (fn t => Eval (t, 1000))
+       then omap (readTermWithPrims (s, size ev1000, size s) prims) (fn t => Eval (t, 1000))
 
        else if isDef str
-       then readDef (s, 0, size s)
+       then readDef (s, 0, size s) prims
 
-       else omap (readTermWithPrims str) (fn t => Eval (t, 1))
+       else omap (readTermWithPrims str prims) (fn t => Eval (t, 1))
     end   
 
 fun addDef def [] = [def]
@@ -410,8 +412,6 @@ fun removeDef _ [] = []
   | removeDef s (Define (n, t) :: xs) =
     if s = n then xs
     else Define (n, t) :: removeDef s xs
-
-
 
 fun nextExec (Reduction (_, t))    = SOME t
   | nextExec (ReductionSkip (_, t))    = SOME t
@@ -427,7 +427,7 @@ fun stmtstr _ (Def (Define (s, _))) = "\n" ^ s ^ " :)"
   | stmtstr _ (Undef s)             = "\n" ^ s ^ " :("
   | stmtstr _ _                     = ""  
 
-fun runrepl defs _ =
+fun runrepl defs prims _ =
     let val inp = TextIO.inputLine TextIO.stdIn
       fun hTerm t c p = 
           if c = 0
@@ -459,7 +459,7 @@ fun runrepl defs _ =
                                         end
 
       fun handleString s =
-          let val res = case readStmt s of
+          let val res = case readStmt s prims of
                             SOME st => hStmt st
                           | NONE    => (TextIO.print "#w"; defs)
           in (TextIO.print "#e"; res)
@@ -468,9 +468,13 @@ fun runrepl defs _ =
     in case inp of
            NONE           => OS.Process.failure
          | SOME "#end\n"  => OS.Process.success
-         | SOME s         => runrepl (handleString (hd (String.fields (fn c => c = #"|") s))) ()
+         | SOME "install npm\n"  => (TextIO.print "\nInstalling Number Package Module...\n#e";
+                                      runrepl defs npmprims ())
+         | SOME s         => runrepl (handleString (hd (String.fields (fn c => c = #"|") s))) 
+                                     prims
+                                     ()
     end
 
-fun repl x = (TextIO.print "Meep meep meep! :D\n#e"; runrepl [] x; ())
+fun repl x = (TextIO.print "Meep meep meep! :D\n#e"; runrepl [] [] x; ())
 
 end
