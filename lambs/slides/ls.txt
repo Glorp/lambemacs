@@ -1,3 +1,4 @@
 The Little Schemer uses
-    * add1, sub1
+    * numbers, add1, sub1
+    * booleans and if or cond or something
     * elephants

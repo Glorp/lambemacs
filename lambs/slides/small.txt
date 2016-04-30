@@ -1,0 +1,9 @@
+smallest, lambda and variable ref:
+λx.x
+
+two lambdas and variable ref:
+λa.λb.a
+λa.λb.b
+
+onw lambda and function application (and variable refs):
+λx.x x

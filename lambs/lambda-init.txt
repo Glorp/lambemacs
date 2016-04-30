@@ -7,8 +7,6 @@ and (stop-lamb) should stop the lambda-thing
 
 (start-stuff)
 (start-lamb)
-(stop-lamb)
-
 
 
 C-d: ≜
@@ -38,22 +36,31 @@ like,
 
 (slide "ruleses")
 
-*~*~* stuff *~*~*
+
 
 (slide "little" "plus")
 
 (slide "numfold")
 
-*~*~* stuff *~*~*
+(slide "plusses")
+
+
+
+(slide "incons")
+(slide "um" "incons")
+(slide "okay")
+
+
+
+(stop-lamb)
+
+(slide "small")
+
+(slide "t-error" "c")
+
+(start-lamb)
+
+
 
 (slide "plusses")
 
-*~*~* stuff *~*~*
-
-(slide "terror" "c")
-
-*~*~* stuff *~*~*
-
-(slide "plusses")
-
-*~*~* stuff *~*~*

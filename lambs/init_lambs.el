@@ -7,6 +7,8 @@
 (global-set-key (kbd "C-S-l") (lambda () (interactive) (insert "\u039b")))
 (global-set-key (kbd "C-p") (lambda () (interactive) (insert "\u03C0")))
 (global-set-key (kbd "C-S-p") (lambda () (interactive) (insert "\u03A0")))
+(global-set-key (kbd "C-o") (lambda () (interactive) (insert "\u03C9")))
+(global-set-key (kbd "C-S-o") (lambda () (interactive) (insert "\u03A9")))
 (global-set-key (kbd "C--") (lambda () (interactive) (insert "\u2192")))
 
 (defun get-string-from-file (filePath)
@@ -47,6 +49,8 @@
                     ("\u039b" "#L")
                     ("\u03C0" "#p")
                     ("\u03A0" "#P")
+                    ("\u03C9" "_o")
+                    ("\u03A9" "_O")
                     ("\u2192" "->")))
       (lambdabuffer "lambda"))
   (labels ((elam->smlam (s)

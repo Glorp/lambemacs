@@ -1,0 +1,12 @@
+so I think the story kind of goes
+Church made lambda calculus, for to use as logic and things
+Kleene and Rosser proved that it was inconsistent
+
+"in the sense that every forumula in their notation is
+provable, irrespective of its meaning under the
+interpretation intended for the symbols"
+
+which probably involves like terms that have no "solution"
+like if you try to reduce them you can go on like forever
+
+I guess we could like read what they wrote
