@@ -14,7 +14,7 @@ and (stop-lamb) should stop the lambda-thing
 C-d: ≜
 C-l: λ
 
-C-e: add definitioneval or do one step of evaluation
+C-e: add definition or do one step of evaluation
 
 like, cursor somewhere on next line and do C-e:
 I ≜ λx.x
@@ -33,6 +33,8 @@ like,
 *~*~*~*~*~*~*~*~*
 
 (slide "rules")
+
+(slide "ls" "ls")
 
 (slide "ruleses")
 
