@@ -38,6 +38,8 @@ like,
 
 *~*~* stuff *~*~*
 
+(slide "little" "plus")
+
 (slide "numfold")
 
 *~*~* stuff *~*~*

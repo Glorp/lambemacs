@@ -2,20 +2,20 @@
                          \__________________________________________/
                                            |
                                            v
-                    λa.λb.if (zero? b) a (___ (succ a) (pred b))
+                    λa.λb.if (zero? b) a (___ (add1 a) (sub1 b))
                     \__________________________________________/
                                       |
                                       v
-               λa.λb.if (zero? b) a (___ (succ a) (pred b))
+               λa.λb.if (zero? b) a (___ (add1 a) (sub1 b))
                \__________________________________________/
                                  |
                                  v
-          λa.λb.if (zero? b) a (___ (succ a) (pred b))
+          λa.λb.if (zero? b) a (___ (add1 a) (sub1 b))
           \__________________________________________/
                             |
                             v
-     λa.λb.if (zero? b) a (___ (succ a) (pred b))
+     λa.λb.if (zero? b) a (___ (add1 a) (sub1 b))
      \__________________________________________/
                        |
                        v
-λa.λb.if (zero? b) a (___ (succ a) (pred b))
+λa.λb.if (zero? b) a (___ (add1 a) (sub1 b))

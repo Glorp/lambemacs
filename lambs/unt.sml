@@ -161,10 +161,10 @@ val npm =
         fun iff (Prim (Pr ("true", _))) = SOME (ifHalp "true" ifTrue)
           | iff (Prim (Pr ("false", _))) = SOME (ifHalp "false" ifFalse)
           | iff _ = NONE
-        fun succ (Num n)     = SOME (Num (S n))
-          | succ _           = NONE
-        fun pred (Num (S n)) = SOME (Num n) 
-          | pred _           = NONE
+        fun add1 (Num n)     = SOME (Num (S n))
+          | add1 _           = NONE
+        fun sub1 (Num (S n)) = SOME (Num n) 
+          | sub1 _           = NONE
         fun isZero (Num Z)   = SOME (Prim tru)
           | isZero (Num _)   = SOME (Prim fal)
           | isZero _         = NONE
@@ -174,8 +174,8 @@ val npm =
          fal,
          Pr ("if", iff),
          Pr ("zero?", isZero),
-         Pr ("succ", succ),
-         Pr ("pred", pred),
+         Pr ("add1", add1),
+         Pr ("sub1", sub1),
          binNumPrim "+" (Num o plus),
          binNumPrim "-" (Num o minus),
          binNumPrim "*" (Num o mult)])
