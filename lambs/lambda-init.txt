@@ -64,3 +64,6 @@ like,
 
 (slide "plusses")
 
+
+
+(slide "omegy" "omegy")
