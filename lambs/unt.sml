@@ -190,8 +190,8 @@ fun installPackage id packages prims =
             else (Pr (ss, ff) :: addPrim (Pr (s, f), tl))
           | addPrim (p, []) = [p]
     in case packages id of
-           NONE => (TextIO.print ("\nNo package named " ^ id ^ ". soz.\n#e"); prims)
-         | SOME (_, name, stuff) => (TextIO.print ("\nInstalling " ^ name ^ "...\n#e");
+           NONE => (TextIO.print ("No package named " ^ id ^ ". soz.\n#e"); prims)
+         | SOME (_, name, stuff) => (TextIO.print ("Installing " ^ name ^ "...\n#e");
                                   foldl addPrim prims stuff)
     end
 
@@ -441,13 +441,13 @@ fun nextExec (Reduction (_, t))    = SOME t
   | nextExec (Rename (_, _, _, t)) = SOME t
   | nextExec (Normal _)            = NONE
 
-fun execStr (Reduction (_, t))      = "\n" ^ termstr t
-  | execStr (ReductionSkip (_, t))      = "\n" ^ termstr t
-  | execStr (Rename (s1, _, s2, t)) = "\n" ^ termstr t ^ " | [" ^ s2 ^ "/" ^ s1 ^ "]"
-  | execStr (Normal t)              = "\n" ^ termstr t
+fun execStr (Reduction (_, t))      = termstr t
+  | execStr (ReductionSkip (_, t))      = termstr t
+  | execStr (Rename (s1, _, s2, t)) = termstr t ^ " | [" ^ s2 ^ "/" ^ s1 ^ "]"
+  | execStr (Normal t)              = termstr t
 
-fun stmtstr _ (Def (Define (s, _))) = "\n" ^ s ^ " :)"
-  | stmtstr _ (Undef s)             = "\n" ^ s ^ " :("
+fun stmtstr _ (Def (Define (s, _))) = s ^ " :)"
+  | stmtstr _ (Undef s)             = s ^ " :("
   | stmtstr _ _                     = ""
 
 fun runrepl defs prims _ =
@@ -462,7 +462,7 @@ fun runrepl defs prims _ =
                              end
                    val flush = if c mod 10 = 0 orelse c < 10 then TextIO.print "#e" else ()
                    in case nextExec res of
-                          SOME t => (TextIO.print (execStr res);
+                          SOME t => (TextIO.print (execStr res ^ (if c = 1 then "" else "\n"));
                                      hTerm t (c - 1) false)
                         | NONE   => (if p then TextIO.print (execStr res) else ();
                                      defs)
@@ -470,13 +470,13 @@ fun runrepl defs prims _ =
 
       fun hStmt (Eval (t, c))         = (hTerm t c true;
                                          defs)
-        | hStmt (RenameDefs t)        = (TextIO.print ("\n" ^ termstr (renameDefs t defs));
+        | hStmt (RenameDefs t)        = (TextIO.print (termstr (renameDefs t defs));
                                          defs)
-        | hStmt (Def (Define (s, t))) = (TextIO.print ("\n" ^ s ^ " :)");
+        | hStmt (Def (Define (s, t))) = (TextIO.print (s ^ " :)");
                                          addDef (Define (s, t)) defs)
-        | hStmt (Undef s)             = (TextIO.print ("\n" ^ s ^ " :(");
+        | hStmt (Undef s)             = (TextIO.print (s ^ " :(");
                                          removeDef s defs)
-        | hStmt ShowDefs              = let fun printDef (Define (s, t)) =  TextIO.print ("\n" ^ s ^ " := " ^ termstr t)
+        | hStmt ShowDefs              = let fun printDef (Define (s, t)) =  TextIO.print (s ^ " := " ^ termstr t)
                                         in (map printDef defs;
                                             defs)
                                         end
