@@ -15,10 +15,10 @@ e.g.
 
 (λa.λb.λc.a c c) foo bar quux
 
-if true foo bar
-
 add1 3
 
 zero? 0
+
+if true foo bar
 
 (λx.(if (zero? (sub1 x)) add1 sub1)) 1 5
