@@ -1,3 +1,5 @@
+Code and things at https://github.com/Glorp/lambemacs/tree/flat16
+
 C-x C-e: evaluate Emacs Lisp-expression (cursor on end of line first maybe)
 (slide "start" "liti")
 
