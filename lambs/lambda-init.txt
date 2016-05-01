@@ -38,6 +38,7 @@ like,
 
 (slide "ruleses")
 
+(slide "defs")
 
 
 (slide "little" "plus")
