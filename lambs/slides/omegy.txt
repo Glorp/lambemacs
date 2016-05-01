@@ -2,3 +2,5 @@
 Ω ≜ ω ω
 Y ≜ λf.(λx.f (x x)) (λx.f (x x))
 Y I = Ω
+
+(from Barendregt-book)
