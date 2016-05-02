@@ -62,6 +62,7 @@ like,
 (slide "t-error" "c")
 
 (start-lamb)
+(slide "plzrememberto")
 
 
 

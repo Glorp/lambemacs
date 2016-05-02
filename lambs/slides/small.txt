@@ -5,5 +5,5 @@ two lambdas and variable ref:
 λa.λb.a
 λa.λb.b
 
-onw lambda and function application (and variable refs):
+one lambda and function application (and variable refs):
 λx.x x

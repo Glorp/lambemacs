@@ -1,25 +1,5 @@
-0 ≜ λf.λx.x
-S ≜ λn.λf.λx.f (n f x)
-2 ≜ λf.λx.f (f x)
-+ ≜ λa.λb.a S b
-6 ≜ λf.λx.f (f (f (f (f (f x)))))
-* ≜ λa.λb.a (+ b) 0
-10 ≜ λf.λx.f (f (f (f (f (f (f (f (f (f x)))))))))
-8 ≜ λf.λx.f (f (f (f (f (f (f (f x)))))))
-
-pair ≜ λa.λb.λf.f a b
-fst ≜ λp.p (λa.λb.a)
-snd ≜ λp.p (λa.λb.b)
-predhalp ≜ λp.pair (S (fst p)) (fst p)
-pred ≜ λn.snd (n predhalp (pair 0 0))
-- ≜ λa.λb.b pred a
-
-
-nil ≜ λc.λn.n
-cons ≜ λh.λt.λc.λn.c h (t c n)
-alist ≜ λc.λn.c foo (c bar (c quux n))
-map ≜ λf.λl.l (λh.λt.cons (f h) t) nil
-useful ≜ λx.cons x (cons x nil)
-append ≜ λa.λb.a cons b
-flat ≜ λa.a append nil
->>= ≜ λf.λl.flat (map f l)
+I ≜ λx.x
+Y ≜ λf.(λx.f (x x)) (λx.f (x x))
+plus ≜ λself.λn.λm.if (zero? m) n (add1 (self n (sub1 m)))
+fact ≜ (λf.(λx.f (x x)) (λx.f (x x))) (λself.λn.if (zero? n) 1 (* n (self (sub1 n))))
+fib ≜ (λf.(λx.f (x x)) (λx.f (x x))) (λself.λn.if ((λa.λb.if a true b) (zero? n) (zero? (sub1 n))) n (+ (self (sub1 n)) (self (sub1 (sub1 n)))))
