@@ -1,5 +1,10 @@
+C-e on each line:
 I ≜ λx.x
 Y ≜ λf.(λx.f (x x)) (λx.f (x x))
-plus ≜ λself.λn.λm.if (zero? m) n (add1 (self n (sub1 m)))
-fact ≜ (λf.(λx.f (x x)) (λx.f (x x))) (λself.λn.if (zero? n) 1 (* n (self (sub1 n))))
-fib ≜ (λf.(λx.f (x x)) (λx.f (x x))) (λself.λn.if ((λa.λb.if a true b) (zero? n) (zero? (sub1 n))) n (+ (self (sub1 n)) (self (sub1 (sub1 n)))))
+plus ≜ Y (λself.λn.λm.if (zero? m) n (add1 (self n (sub1 m))))
+fact ≜ Y (λself.λn.if (zero? n) 1 (* n (self (sub1 n))))
+fib ≜ Y (λself.λn.if ((λa.λb.if a true b) (zero? n) (zero? (sub1 n))) n (+ (self (sub1 n)) (self (sub1 (sub1 n)))))
+
+Then e.g.
+C-r on next line, then C-S-e:
+plus 7 8

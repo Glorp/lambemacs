@@ -9,7 +9,8 @@ and (stop-lamb) should stop the lambda-thing
 
 (start-stuff)
 (start-lamb)
-
+also remember to (C-e with cursor on next line)
+install npm
 
 C-d: ≜
 C-l: λ
@@ -29,6 +30,11 @@ I I I I foo
 Renaming variables to avoid capture counts as one step:
 like,
 λx.(λy.λx.y) x
+
+*~*~*~*~*~*~*~*~*
+
+The cheat-slide has some definitions in it:
+(slide "cheat")
 
 *~*~*~*~*~*~*~*~*
 
