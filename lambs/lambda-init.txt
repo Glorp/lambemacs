@@ -1,5 +1,5 @@
 C-x C-e: evaluate Emacs Lisp-expression (cursor on end of line first maybe)
-(slide "start" "capy")
+(slide "start" "otter")
 
 Emacs Lisp-evaluating (start-lamb) should start the lambda-thing:
 (start-lamb)
