@@ -2,6 +2,7 @@ https://github.com/Glorp/lambemacs/tree/lambdadays17
 
 C-x C-e: evaluate Emacs Lisp-expression (cursor on end of line first maybe)
 (slide "start" "otter")
+(slide "concerning-the-otter")
 
 Emacs Lisp-evaluating (start-lamb) should start the lambda-thing:
 (start-lamb)
