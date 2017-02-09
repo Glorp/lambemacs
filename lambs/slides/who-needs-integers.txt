@@ -1,0 +1,10 @@
+* A (positive) integer just counts loop iterations!
+
+    two  f x = f (f x)
+    one  f x = f x
+    zero f x = x
+
+* To recover a "normal" integer
+
+    *Church> two (+1-- wait. no. um.
+    M-x count-matches I guess

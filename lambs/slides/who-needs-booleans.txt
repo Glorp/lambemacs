@@ -1,0 +1,8 @@
+* A boolean just makes a choice!
+
+    true  x y = x
+    false x y = y
+
+* We can define if-then-else!
+
+    ifte bool t e = bool t e
